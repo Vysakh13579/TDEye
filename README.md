@@ -6,5 +6,5 @@ This tool provides an easy-to-use plotting interface for the tidal disruption ev
 
 In addition to visualization, this tool enables baseline correction for pre-peak data.
 
-You can run the tool by         
-    python TDEye.py
+You can run the tool by:
+        python TDEye.py
