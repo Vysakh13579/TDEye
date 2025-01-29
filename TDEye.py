@@ -243,7 +243,7 @@ def get_flux_data4fil(data, fil, unit, baseline_correction_args ):
 
 
 def plot_ztf_lightcurves(filename, filtr, name, axes, flux_unit = 'uJy', peak_zero = False, BL_burnback = 200, threshold_obs = 30, BL_crctn_trig = True, 
-                         dbl_baseline =None, modelling = True, temp_evol = 'linear', data_opacity = 0.4, tde_model = 'SigmoidxExp', weight = 1):
+                         dbl_baseline =None, modelling = True, temp_evol = 'linear', data_opacity = 0.5, tde_model = 'SigmoidxExp', weight = 1):
 
 
 
@@ -352,13 +352,45 @@ def visualiser(merged_df, Names, manyTDE_bool = False):
             ax00.set_yscale('symlog')
 
         return [ax00]
-        
+    
+    global settings
+    settings = {}
+
+    global current_obj
+    current_obj = None
+
+    global loading_settings
+    loading_settings = False
 
     
 
     def update_plot(event = None, reset =False):
-
         
+        global current_obj
+
+        if loading_settings:
+            return
+        
+        new_obj = Name_dropdown.get()
+        if new_obj != current_obj:
+            # Save previous object's settings
+            if current_obj:
+                settings[current_obj]['filters'] = [filter_list.get(i) for i in filter_list.curselection()]
+            
+            # Update current object
+            current_obj = new_obj
+            
+            # Initialize settings if new object
+            if current_obj not in settings:
+                initialize_settings()
+            
+            # Update filter list for new object
+            update_filter_list(current_obj)
+        
+
+
+
+
         global axes
         # Retrieve current axis limits (if available)
         if reset:
@@ -432,30 +464,52 @@ def visualiser(merged_df, Names, manyTDE_bool = False):
 
 
     text_input = {}
-    def on_generic_number_input_change(entry_widget, variable_name):
-        """Handle changes to a generic numeric input."""
-        try:
-            value = int(entry_widget.get())
-            text_input[variable_name] = entry_widget
-            #print(f"{variable_name} changed to: {value}")
-            update_plot()
-        except ValueError:
-            print(f"Invalid input for {variable_name}: Please enter a valid number.")
-
-    def add_number_input(parent, label_text, variable_name, default_value=0):
-        """Add a numeric input field with a label and default value."""
-        frame = tk.Frame(parent, bg="black")
-        frame.pack(fill=tk.X, pady=2)
-        tk.Label(frame, text=label_text, bg="black", fg="white").pack(side=tk.LEFT)
-        entry = tk.Entry(frame, bg="black", fg="white", insertbackground="white")
-        entry.insert(0, str(default_value))  # Set default value
-        entry.pack(side=tk.RIGHT, fill=tk.X, expand=True)
-        entry.bind("<KeyRelease>", lambda event: on_generic_number_input_change(entry, variable_name))
-        text_input[variable_name] = entry
-        return entry
 
 
 
+
+    # Initialize settings dictionary
+    
+    def initialize_settings():
+        """Initialize or update settings for all objects"""
+        global settings
+        for obj in Names:
+            if obj not in settings:
+                # Get available filters for this object
+                try:
+                    _, filter_avble, _ = get_full_lightcurve_data('', obj)
+                    filter_avble = sorted(filter_avble, reverse=True)
+                    settings[obj] = {
+                        'filters': filter_avble[:2],
+                    }
+                except UnboundLocalError:
+                    pass
+                #print(settings.keys())
+
+
+    def update_filter_list(obj_name):
+        """Update the filter listbox for the selected object"""
+        global loading_settings
+        loading_settings = True
+        
+        # Get available filters for current object
+        _, filter_avble, _ = get_full_lightcurve_data('', obj_name)
+        
+        # Clear existing filters
+        filter_list.delete(0, tk.END)
+        
+        # Insert new filters
+        for col in sorted(filter_avble, reverse=True):
+            filter_list.insert(tk.END, col)
+        
+        # Restore selections from settings
+        filter_list.selection_clear(0, tk.END)
+        saved_filters = settings[obj_name]['filters']
+        for idx, col in enumerate(sorted(filter_avble,reverse=True)):
+            if col in saved_filters:
+                filter_list.selection_set(idx)
+        
+        loading_settings = False
 
 
     global root
@@ -517,11 +571,6 @@ def visualiser(merged_df, Names, manyTDE_bool = False):
     tk.Label(control_frame, text="Filter Selection:", bg="black", fg="white").grid(row=1, column=0, sticky="w", pady=2)
     filter_list = tk.Listbox(control_frame, selectmode=tk.MULTIPLE, height=4, exportselection=False, bg="black", fg="white")
     filter_list.grid(row=1, column=1, columnspan=4, rowspan=4, sticky="ew", padx=5, pady=2)
-    for col in ['ZTF_r', 'ZTF_g', 'ZTF_i', 'B.uvot', 'U.uvot', 'UVM2.uvot', 'UVW1.uvot', 'UVW2.uvot', 'u.sdss', 'r.sdss', 'g.sdss', 'NUV', 'FUV', 'F150LP', 'F125LP', 'F225W', 'r.ps', 'g.ps' ]:
-        filter_list.insert(tk.END, col)
-    default_selections = [0, 1, ]  # Example: First and second items selected by default
-    for index in default_selections:
-        filter_list.selection_set(index)
 
 
 
@@ -638,8 +687,13 @@ def visualiser(merged_df, Names, manyTDE_bool = False):
     BCthreshold_entry.bind("<KeyRelease>", update_plot)
 
 
+    
 
 
+    initialize_settings()
+    current_obj = Name_dropdown.get()
+    update_filter_list(current_obj)
+    
     update_plot()
 
     root.mainloop()
