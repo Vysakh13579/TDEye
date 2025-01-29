@@ -138,7 +138,7 @@ def clean_data(datapath,ZTF_ID,savepath=None,verbose=False, log_dict_bool = Fals
       IMPORTANT: dependencies are the numpy, pandas, json and os packages as well as a special json NumpyEncoder by Hunter M. Allen (https://pypi.org/project/numpyencoder/).
 
     Args:
-        datapath (str): Path to the raw data in the form path\to\data\batchf_reqxxxxxxxxxxxxxxxxx_lc.txt.
+        datapath (str): Path to the raw data in the form path-to-data-batchf_reqxxxxxxxxxxxxxxxxx_lc.txt.
         ZTF_ID (str): ZTF identifier of the transient.
         savepath (str, optional): Path to folder in which clean data and cleaning log will be saved. Defaults to None, in which case data is printed if verbose is True, otherwise it is lost.
         verbose (bool, optional): Controls the (amount of) print statements in the function. Defaults to False.
